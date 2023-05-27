@@ -4,6 +4,7 @@ import { FcGoogle } from "react-icons/fc";
 import { useContext } from "react";
 import { AuthContext } from "../../providers/AuthProvider";
 import { TbFidgetSpinner } from "react-icons/tb";
+import { toast } from "react-hot-toast";
 
 const SignUp = () => {
   const {
@@ -38,8 +39,26 @@ const SignUp = () => {
     })
       .then((res) => res.json())
       .then((data) => {
-          const imgURl = data.data.display_url;
-          
+        const imgURl = data.data.display_url;
+        createUser(email, password)
+          .then((result) => {
+            console.log(result.user);
+            updateUserProfile(name, imgURl)
+              .then(() => {
+                toast.success("SignUp Successfull")
+                navigate(from, { replace: true });
+              })
+              .catch((error) => {
+                console.log(error.message);
+                toast.error(error.message);
+                setLoading(false);
+              });
+          })
+          .catch((error) => {
+            console.log(error.message);
+            toast.error(error.message);
+            setLoading(false);
+          });
       })
       .catch((error) => {
         console.log(error.message);
