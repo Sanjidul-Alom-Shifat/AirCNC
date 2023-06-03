@@ -5,6 +5,7 @@ import { useContext, useRef } from "react";
 import { AuthContext } from "../../providers/AuthProvider";
 // import { Result } from "postcss";
 import { toast } from "react-hot-toast";
+import { saveUser } from "../../API/auth";
 
 const Login = () => {
   const { signIn, signInWithGoogle, resetPassword, loading, setLoading } =
@@ -36,6 +37,8 @@ const Login = () => {
     signInWithGoogle()
       .then((result) => {
         console.log(result.user);
+        // save user in db
+        saveUser(result.user);
         navigate(from, { replace: true });
       })
       .catch((error) => {
