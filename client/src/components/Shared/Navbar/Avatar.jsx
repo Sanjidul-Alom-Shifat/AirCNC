@@ -9,6 +9,7 @@ const Avatar = () => {
       <img
         className="rounded-full"
         src={user && user.photoURL ? user.photoURL : avatarImg}
+        referrerPolicy="no-referrer"
         alt="Profile"
         width="30"
         height="30"
