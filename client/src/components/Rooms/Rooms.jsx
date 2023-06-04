@@ -11,7 +11,7 @@ const Rooms = () => {
   const [loading, setLoading] = useState(false);
   const [params, setParams] = useSearchParams();
   const category = params.get("category");
-  console.log(category);
+  
 
   useEffect(() => {
     setLoading(true);
