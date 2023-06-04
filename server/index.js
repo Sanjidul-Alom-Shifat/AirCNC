@@ -2,6 +2,8 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
 const app = express();
 const cors = require("cors");
+const morgan = require("morgan");
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const port = process.env.PORT || 5000;
 
@@ -14,6 +16,7 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use(morgan("dev"));
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.1gttryf.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -25,11 +28,42 @@ const client = new MongoClient(uri, {
   },
 });
 
+// ValidateJWT
+const verifyJWT = (req, res, next) => {
+  const authorization = req.headers.authorization;
+  if (!authorization) {
+    return res.status(401).send({ error: true, message: "Unauthrized Access" });
+  }
+  //token verify
+  const token = authorization.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res
+        .status(401)
+        .send({ error: true, message: "Unauthrized Access" });
+    }
+    req.decoded = decoded;
+  });
+
+  next();
+};
+
 async function run() {
   try {
     const usersCollection = client.db("aircncDb").collection("users");
     const roomsCollection = client.db("aircncDb").collection("rooms");
     const bookingsCollection = client.db("aircncDb").collection("bookings");
+
+    // Generate JWT Token
+    app.post("/jwt", (req, res) => {
+      const email = req.body;
+      console.log(email);
+      const token = jwt.sign(email, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
+      res.send({ token });
+    });
+
     //Save User email & role in DB
     app.put("/users/:email", async (req, res) => {
       const email = req.params.email;
@@ -48,7 +82,7 @@ async function run() {
       const email = req.params.email;
       const query = { email: email };
       const result = await usersCollection.findOne(query);
-      console.log(result);
+
       res.send(result);
     });
 
@@ -71,16 +105,22 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await roomsCollection.findOne(query);
-      console.log(result);
+
       res.send(result);
     });
 
     //Get all room for host
-    app.get("/rooms/:email", async (req, res) => {
+    app.get("/rooms/:email", verifyJWT, async (req, res) => {
+      const decodedEmail = req.decoded.email;
       const email = req.params.email;
+      if (email !== decodedEmail) {
+        return res
+        .status(403)
+        .send({ error: true, message: "Forbidden Access" });
+      }
       const query = { "host.email": email };
       const result = await roomsCollection.find(query).toArray();
-      console.log(result);
+
       res.send(result);
     });
 
@@ -119,6 +159,17 @@ async function run() {
         res.send([]);
       }
       const query = { "guest.email": email };
+      const result = await bookingsCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // get bookings for host
+    app.get("/bookings/host", async (req, res) => {
+      const email = req.query.email;
+      if (!email) {
+        res.send([]);
+      }
+      const query = { host: email };
       const result = await bookingsCollection.find(query).toArray();
       res.send(result);
     });
