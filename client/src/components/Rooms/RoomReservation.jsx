@@ -19,7 +19,6 @@ const RoomReservation = ({ roomDetails }) => {
         new Date(roomDetails.from)
       ).split(" ")[0]
     ) * roomDetails.price;
-  console.log(totalPrice);
 
   const [value, setValue] = useState({
     startDate: new Date(roomDetails.from),
@@ -51,24 +50,6 @@ const RoomReservation = ({ roomDetails }) => {
     setIsOpen(false);
   };
 
-  const modalHandler = () => {
-    addBookings(bookinInfo)
-      .then((data) => {
-        console.log(data);
-        updateStatus(roomDetails._id, true)
-          .then((data) => {
-            toast.success("Booking Successfull");
-            navigate("/dashboard/my-bookings");
-            setIsOpen(false);
-          })
-          .catch((error) => console.log(error));
-      })
-      .catch((error) => {
-        console.log(error);
-        setIsOpen(false);
-      });
-  };
-
   return (
     <div className="bg-white rounded-xl border-[1px] border-neutral-200 overflow-hidden w-full">
       <div className="flex flex-row items-center p-4 gap-1">
@@ -93,7 +74,6 @@ const RoomReservation = ({ roomDetails }) => {
       </div>
       <BookingModal
         closeModal={closeModal}
-        modalHandler={modalHandler}
         bookingInfo={bookinInfo}
         isOpen={isOpen}
       />

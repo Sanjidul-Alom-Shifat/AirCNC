@@ -4,7 +4,9 @@ const app = express();
 const cors = require("cors");
 const morgan = require("morgan");
 const jwt = require("jsonwebtoken");
+const nodemailer = require("nodemailer");
 require("dotenv").config();
+const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
 const port = process.env.PORT || 5000;
 
 // iI8YD5pYuqNCX2wu aircncDb
@@ -48,11 +50,50 @@ const verifyJWT = (req, res, next) => {
   next();
 };
 
+// send mail function
+const sendMail = (emailData, emailAddress) => {
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL,
+      pass: process.env.PASS,
+    },
+  });
+  const mailOptions = {
+    from: process.env.PASS,
+    to: emailAddress,
+    subject: emailData.subject,
+    html: `<p>${emailData.message}</p>`,
+  };
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.log(error);
+    } else {
+      console.log("Email Sent", info.response);
+    }
+  });
+};
+
 async function run() {
   try {
     const usersCollection = client.db("aircncDb").collection("users");
     const roomsCollection = client.db("aircncDb").collection("rooms");
     const bookingsCollection = client.db("aircncDb").collection("bookings");
+
+    // Generate Client Secret
+    app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+      const { price } = req.body;
+      console.log(price);
+      if (price) {
+        const amount = parseFloat(price) * 100;
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: amount,
+          currency: "usd",
+          payment_method_types: ["card"],
+        });
+        res.send({ clientSecret: paymentIntent.client_secret });
+      }
+    });
 
     // Generate JWT Token
     app.post("/jwt", (req, res) => {
@@ -115,8 +156,8 @@ async function run() {
       const email = req.params.email;
       if (email !== decodedEmail) {
         return res
-        .status(403)
-        .send({ error: true, message: "Forbidden Access" });
+          .status(403)
+          .send({ error: true, message: "Forbidden Access" });
       }
       const query = { "host.email": email };
       const result = await roomsCollection.find(query).toArray();
@@ -135,6 +176,25 @@ async function run() {
     app.post("/bookings", async (req, res) => {
       const booking = req.body;
       const result = await bookingsCollection.insertOne(booking);
+      // send confirmation email to guest email account
+      sendMail(
+        {
+          subject: "Booking Successfull",
+          message: `Booking id: ${result.insertedId}, TransactionId: ${booking.transactionId}`,
+        },
+
+        booking.guest.email
+      );
+      // send confirmation email to host email account
+      sendMail(
+        {
+          subject: "Your Room Got Booked",
+          message: `Booking id: ${result.insertedId}, TransactionId: ${booking.transactionId}`,
+        },
+
+        booking?.host
+      );
+
       res.send(result);
     });
 
