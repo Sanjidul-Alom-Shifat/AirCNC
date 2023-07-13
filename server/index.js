@@ -9,7 +9,7 @@ require("dotenv").config();
 const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
 const port = process.env.PORT || 5000;
 
-// iI8YD5pYuqNCX2wu aircncDb
+// iI8YD5pYuqNCX2wu AircncDB
 // middleware
 const corsOptions = {
   origin: "*",
@@ -76,9 +76,9 @@ const sendMail = (emailData, emailAddress) => {
 
 async function run() {
   try {
-    const usersCollection = client.db("aircncDb").collection("users");
-    const roomsCollection = client.db("aircncDb").collection("rooms");
-    const bookingsCollection = client.db("aircncDb").collection("bookings");
+    const usersCollection = client.db("AircncDB").collection("users");
+    const roomsCollection = client.db("AircncDB").collection("rooms");
+    const bookingsCollection = client.db("AircncDB").collection("bookings");
 
     // Generate Client Secret
     app.post("/create-payment-intent", verifyJWT, async (req, res) => {
